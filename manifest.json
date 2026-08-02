@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "MRU Tab Switcher",
+  "version": "1.0.0",
+  "description": "Firefox-style Ctrl+Tab: hold Ctrl and tap ` to preview tabs in most-recently-used order, release Ctrl to switch.",
+  "permissions": ["tabs", "storage"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ]
+}
