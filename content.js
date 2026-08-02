@@ -18,7 +18,8 @@
       outline-offset:-2px; }
     .item img { width:18px; height:18px; flex:none; }
     .item span { font-size:13px; overflow:hidden; text-overflow:ellipsis;
-      white-space:nowrap; }
+      white-space:nowrap; flex:1; }
+    .item .tag { font-size:11px; color:#9ad; flex:none; }
     input { font-size:14px; padding:6px 8px; border-radius:6px; border:1px solid #555;
       background:#111; color:#eee; outline:none; }
     .results { display:flex; flex-direction:column; gap:2px; max-height:50vh;
@@ -45,6 +46,12 @@
       const span = document.createElement("span");
       span.textContent = item.title;
       row.appendChild(span);
+      if (item.isCurrent) {
+        const tag = document.createElement("span");
+        tag.className = "tag";
+        tag.textContent = "current";
+        row.appendChild(tag);
+      }
       container.appendChild(row);
     });
   }
@@ -229,11 +236,14 @@
           opening = false;
           if (chrome.runtime.lastError) return;
           if (!resp || !resp.items || resp.items.length < 2) return;
-          // Search sits where the current tab would be (top of the list);
-          // the current tab itself (resp.items[0]) isn't a useful destination.
+          // Current tab sits at the top of the list as a visual anchor;
+          // Search sits at the very end. Cycling forward through the other
+          // tabs eventually reaches Search, then wraps back to the current
+          // tab at the top.
+          const [current, ...others] = resp.items;
           session = {
             mode: "cycle",
-            items: [SEARCH_ITEM, ...resp.items.slice(1)],
+            items: [{ ...current, isCurrent: true }, ...others, SEARCH_ITEM],
             index: 1,
           };
           buildCycleOverlay();
