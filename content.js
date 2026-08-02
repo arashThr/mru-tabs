@@ -1,49 +1,51 @@
 // Content script: detects Ctrl+` cycling and renders a preview overlay,
 // without switching tabs until Ctrl is released (Firefox Ctrl+Tab style).
 // Hold Shift too (Ctrl+Shift+`) to cycle backwards.
+// Cycling past the last tab switches to a type-ahead search box.
 (() => {
-  let session = null; // { items: [{id,title,favIconUrl}], index }
+  let session = null; // { mode: 'cycle'|'search', ... }
   let overlayHost = null;
+  let opening = false; // true while the first get-mru request is in flight
 
-  function buildOverlay(items, index) {
-    removeOverlay();
-    overlayHost = document.createElement("div");
-    overlayHost.style.cssText =
-      "all:initial; position:fixed; inset:0; z-index:2147483647; display:flex;" +
-      "align-items:center; justify-content:center; pointer-events:none;";
-    const shadow = overlayHost.attachShadow({ mode: "open" });
-    const style = document.createElement("style");
-    style.textContent = `
-      .panel { display:flex; flex-direction:column; gap:2px; min-width:260px;
-        max-width:420px; background:rgba(20,20,20,0.92); border-radius:10px;
-        padding:8px; box-shadow:0 8px 30px rgba(0,0,0,0.5); font-family:sans-serif; }
-      .item { display:flex; align-items:center; gap:10px; padding:6px 10px;
-        border-radius:6px; color:#eee; box-sizing:border-box; }
-      .item.active { background:rgba(77,163,255,0.25); outline:2px solid #4da3ff; }
-      .item img { width:18px; height:18px; flex:none; }
-      .item span { font-size:13px; overflow:hidden; text-overflow:ellipsis;
-        white-space:nowrap; }
-    `;
-    const panel = document.createElement("div");
-    panel.className = "panel";
+  const BASE_STYLE = `
+    .panel { display:flex; flex-direction:column; gap:2px; min-width:260px;
+      max-width:420px; background:rgba(20,20,20,0.95); border-radius:10px;
+      padding:8px; box-shadow:0 8px 30px rgba(0,0,0,0.5); font-family:sans-serif;
+      pointer-events:auto; }
+    .item { display:flex; align-items:center; gap:10px; padding:6px 10px;
+      border-radius:6px; color:#eee; box-sizing:border-box; }
+    .item.active { background:rgba(77,163,255,0.25); outline:2px solid #4da3ff;
+      outline-offset:-2px; }
+    .item img { width:18px; height:18px; flex:none; }
+    .item span { font-size:13px; overflow:hidden; text-overflow:ellipsis;
+      white-space:nowrap; }
+    input { font-size:14px; padding:6px 8px; border-radius:6px; border:1px solid #555;
+      background:#111; color:#eee; outline:none; }
+    .results { display:flex; flex-direction:column; gap:2px; max-height:50vh;
+      overflow-y:auto; }
+  `;
+
+  const SEARCH_ITEM = {
+    id: null,
+    title: "\uD83D\uDD0D Search tabs\u2026",
+    favIconUrl: "",
+    isSearch: true,
+  };
+
+  function renderItems(container, items, activeIndex) {
+    container.innerHTML = "";
     items.forEach((item, i) => {
       const row = document.createElement("div");
-      row.className = "item" + (i === index ? " active" : "");
-      const img = document.createElement("img");
-      img.src = item.favIconUrl || "";
+      row.className = "item" + (i === activeIndex ? " active" : "");
+      if (!item.isSearch) {
+        const img = document.createElement("img");
+        img.src = item.favIconUrl || "";
+        row.appendChild(img);
+      }
       const span = document.createElement("span");
       span.textContent = item.title;
-      row.append(img, span);
-      panel.appendChild(row);
-    });
-    shadow.append(style, panel);
-    document.documentElement.appendChild(overlayHost);
-  }
-
-  function updateOverlay(index) {
-    if (!overlayHost) return;
-    overlayHost.shadowRoot.querySelectorAll(".item").forEach((el, i) => {
-      el.classList.toggle("active", i === index);
+      row.appendChild(span);
+      container.appendChild(row);
     });
   }
 
@@ -54,35 +56,187 @@
     }
   }
 
-  function endSession(commit) {
-    if (session && commit) {
-      const chosen = session.items[session.index];
+  function newOverlayShadow() {
+    removeOverlay();
+    overlayHost = document.createElement("div");
+    overlayHost.style.cssText =
+      "all:initial; position:fixed; inset:0; z-index:2147483647; display:flex;" +
+      "align-items:center; justify-content:center; pointer-events:none;";
+    const shadow = overlayHost.attachShadow({ mode: "open" });
+    const style = document.createElement("style");
+    style.textContent = BASE_STYLE;
+    shadow.appendChild(style);
+    document.documentElement.appendChild(overlayHost);
+    return shadow;
+  }
+
+  // Returns the same on-screen panel if one is already showing (so switching
+  // from the cycle list into search re-uses it instead of popping up a new
+  // dialog), otherwise creates a fresh overlay + panel.
+  function ensurePanel() {
+    const shadow = overlayHost ? overlayHost.shadowRoot : newOverlayShadow();
+    let panel = shadow.querySelector(".panel");
+    if (!panel) {
+      panel = document.createElement("div");
+      panel.className = "panel";
+      shadow.appendChild(panel);
+    }
+    return panel;
+  }
+
+  // ---- Cycle mode: preview list, moves with each Ctrl+` press ----
+
+  function buildCycleOverlay() {
+    const shadow = newOverlayShadow();
+    const panel = document.createElement("div");
+    panel.className = "panel";
+    const list = document.createElement("div");
+    list.className = "results";
+    panel.appendChild(list);
+    shadow.appendChild(panel);
+    session.listEl = list;
+    renderItems(list, session.items, session.index);
+  }
+
+  function step(reverse) {
+    const n = session.items.length;
+    session.index = (session.index + (reverse ? -1 : 1) + n) % n;
+    renderItems(session.listEl, session.items, session.index);
+  }
+
+  function endCycle(commit) {
+    const chosen = commit ? session.items[session.index] : null;
+    if (chosen && chosen.isSearch) {
+      // Keep showing the same tabs (minus the Search row itself) until the
+      // user actually types something.
+      const carryItems = session.items.filter((it) => !it.isSearch);
+      enterSearchMode(carryItems);
+      return;
+    }
+    session = null;
+    removeOverlay();
+    if (chosen) {
+      chrome.runtime.sendMessage({ type: "commit", tabId: chosen.id });
+    }
+  }
+
+  // ---- Search mode: type-ahead over all tabs in the window ----
+
+  function enterSearchMode(baseItems) {
+    // Reuse the panel and its existing item list (if any) as-is; only an
+    // input box gets added above it. Nothing changes on screen until typing.
+    const panel = ensurePanel();
+    let list = panel.querySelector(".results");
+    if (!list) {
+      list = document.createElement("div");
+      list.className = "results";
+      panel.appendChild(list);
+    }
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "Search tabs\u2026";
+    panel.insertBefore(input, list);
+
+    session = {
+      mode: "search",
+      query: "",
+      baseItems: baseItems || [],
+      results: baseItems || [],
+      resultIndex: 0,
+      listEl: list,
+    };
+
+    input.addEventListener("input", () => {
+      session.query = input.value;
+      if (!input.value.trim()) {
+        session.results = session.baseItems;
+        session.resultIndex = 0;
+        renderItems(session.listEl, session.results, session.resultIndex);
+        return;
+      }
+      runSearch(input.value);
+    });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        endSearch(false);
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        e.stopPropagation();
+        endSearch(true);
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        moveSearchIndex(1);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        moveSearchIndex(-1);
+      }
+    });
+    input.focus();
+  }
+
+  function runSearch(query) {
+    session.query = query;
+    chrome.runtime.sendMessage({ type: "search-tabs", query }, (resp) => {
+      if (!session || session.mode !== "search") return; // session ended meanwhile
+      session.results = (resp && resp.items) || [];
+      session.resultIndex = 0;
+      renderItems(session.listEl, session.results, session.resultIndex);
+    });
+  }
+
+  function moveSearchIndex(delta) {
+    const n = session.results.length;
+    if (!n) return;
+    session.resultIndex = (session.resultIndex + delta + n) % n;
+    renderItems(session.listEl, session.results, session.resultIndex);
+  }
+
+  function endSearch(commit) {
+    if (commit && session.results.length) {
+      const chosen = session.results[session.resultIndex];
       chrome.runtime.sendMessage({ type: "commit", tabId: chosen.id });
     }
     session = null;
     removeOverlay();
   }
 
-  function step(reverse) {
-    const n = session.items.length;
-    session.index = (session.index + (reverse ? -1 : 1) + n) % n;
-    updateOverlay(session.index);
-  }
+  // ---- Global shortcut handling ----
 
   window.addEventListener(
     "keydown",
     (e) => {
+      if (
+        session &&
+        session.mode === "cycle" &&
+        (e.code === "ArrowUp" || e.code === "ArrowDown")
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        step(e.code === "ArrowUp");
+        return;
+      }
       if (e.code !== "Backquote" || !e.ctrlKey) return;
+      if (session && session.mode === "search") return; // let the input handle its own keys
       e.preventDefault();
       e.stopPropagation();
-      if (e.repeat) return; // ignore OS auto-repeat while key is held down
 
       if (!session) {
+        if (opening) return; // first press's request is still in flight
+        opening = true;
         chrome.runtime.sendMessage({ type: "get-mru" }, (resp) => {
+          opening = false;
           if (chrome.runtime.lastError) return;
           if (!resp || !resp.items || resp.items.length < 2) return;
-          session = { items: resp.items, index: 1 };
-          buildOverlay(session.items, session.index);
+          // Search sits where the current tab would be (top of the list);
+          // the current tab itself (resp.items[0]) isn't a useful destination.
+          session = {
+            mode: "cycle",
+            items: [SEARCH_ITEM, ...resp.items.slice(1)],
+            index: 1,
+          };
+          buildCycleOverlay();
         });
       } else {
         step(e.shiftKey);
@@ -94,10 +248,16 @@
   window.addEventListener(
     "keyup",
     (e) => {
-      if (e.key === "Control" && session) endSession(true);
+      if (e.key === "Control" && session && session.mode === "cycle") {
+        endCycle(true);
+      }
     },
     true,
   );
 
-  window.addEventListener("blur", () => endSession(true));
+  window.addEventListener("blur", () => {
+    if (!session) return;
+    if (session.mode === "cycle") endCycle(true);
+    else endSearch(false);
+  });
 })();

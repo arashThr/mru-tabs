@@ -75,7 +75,14 @@ chrome.tabs.onActivated.addListener(({ tabId, windowId }) => {
 chrome.tabs.onCreated.addListener((tab) => {
   withReady(() => {
     const list = ensureWindow(tab.windowId);
-    if (!list.includes(tab.id)) list.push(tab.id);
+    if (list.includes(tab.id)) return;
+    // A tab opened in the foreground gets its own onActivated event that
+    // moves it to the front. A tab opened in the background (e.g. ctrl+click
+    // a link) won't, so insert it right after the current tab (index 0) --
+    // the most-recently-opened background tab ends up just below whatever
+    // tab is currently active.
+    const insertAt = tab.active ? 0 : Math.min(1, list.length);
+    list.splice(insertAt, 0, tab.id);
   });
 });
 
@@ -125,6 +132,39 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         sendResponse({ items });
       } catch (err) {
         console.error("[mru-tab] get-mru handler failed:", err);
+        sendResponse({ items: [] });
+      }
+    })();
+    return true; // async response
+  }
+
+  if (msg.type === "search-tabs") {
+    (async () => {
+      try {
+        await ready;
+        const query = (msg.query || "").trim().toLowerCase();
+        if (!query) {
+          sendResponse({ items: [] });
+          return;
+        }
+        const windowId = sender.tab.windowId;
+        const list = ensureWindow(windowId);
+        const items = [];
+        for (const id of list.slice()) {
+          try {
+            const t = await chrome.tabs.get(id);
+            const title = t.title || t.url || "Tab";
+            if (!title.toLowerCase().includes(query)) continue;
+            items.push({ id, title, favIconUrl: t.favIconUrl || "" });
+            if (items.length >= 20) break;
+          } catch {
+            const idx = list.indexOf(id);
+            if (idx !== -1) list.splice(idx, 1);
+          }
+        }
+        sendResponse({ items });
+      } catch (err) {
+        console.error("[mru-tab] search-tabs handler failed:", err);
         sendResponse({ items: [] });
       }
     })();

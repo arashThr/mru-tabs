@@ -6,15 +6,22 @@ extension uses **Ctrl + `** (backtick, next to Tab) instead:
 
 - **Tap it quickly** (press Ctrl+`, release right away) → switches straight to
   the previously-used tab. Tap again → toggles back.
-- **Hold Ctrl and tap `` ` `` repeatedly** → a compact overlay lists the last
-  10 tabs in most-recently-used order and moves the highlight back one tab
-  per tap, without actually switching yet.
-- **Add Shift** (Ctrl+Shift+`) while held → cycles the highlight backwards
-  instead of forwards.
-- **Release Ctrl** → switches to whichever tab is highlighted.
+- **Hold Ctrl and tap `` ` `` repeatedly** (or use the Up/Down arrow keys) → a
+  compact overlay lists a "🔍 Search tabs…" entry at the top followed by the
+  last 9 other tabs in most-recently-used order (the tab you're currently on
+  isn't listed), and moves the highlight through them, wrapping at the ends.
+  Shift+`` ` `` or the Up arrow moves backwards.
+- **Release Ctrl** while a tab is highlighted → switches to it.
+- **Release Ctrl** while "🔍 Search tabs…" is highlighted → opens a search box.
+  Type part of a tab's title to find it (searches all open tabs in the
+  window, not just the last 10). Arrow keys move the selection, Enter
+  switches, Escape cancels.
 
 The MRU order updates every time you land on a tab, so the two most recent
-tabs keep swapping with each quick tap, exactly like Firefox.
+tabs keep swapping with each quick tap, exactly like Firefox. Tabs opened in
+the background (e.g. Ctrl+click a link) are inserted into the list right
+after the tab you're on, in the order they were opened, so they're just below
+your current tab without becoming active.
 
 ## Load it
 
