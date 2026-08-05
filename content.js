@@ -139,6 +139,13 @@
       list.className = "results";
       panel.appendChild(list);
     }
+    // Lock the panel's size to its current dimensions so it doesn't
+    // grow/shrink as search results (and their text lengths) change while
+    // typing.
+    const lockedHeight = list.getBoundingClientRect().height;
+    if (lockedHeight > 0) list.style.height = `${lockedHeight}px`;
+    const lockedWidth = panel.getBoundingClientRect().width;
+    if (lockedWidth > 0) panel.style.width = `${lockedWidth}px`;
     const input = document.createElement("input");
     input.type = "text";
     input.placeholder = "Search tabs\u2026";
@@ -187,7 +194,10 @@
     session.query = query;
     chrome.runtime.sendMessage({ type: "search-tabs", query }, (resp) => {
       if (!session || session.mode !== "search") return; // session ended meanwhile
-      session.results = (resp && resp.items) || [];
+      // Cap to the same number of rows the default panel shows, so the
+      // fixed-height list never needs to scroll.
+      const limit = session.baseItems.length || 1;
+      session.results = ((resp && resp.items) || []).slice(0, limit);
       session.resultIndex = 0;
       renderItems(session.listEl, session.results, session.resultIndex);
     });
