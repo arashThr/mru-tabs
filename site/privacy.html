@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Privacy Policy — MRU Tab Switcher</title>
+  <link rel="icon" href="./assets/icons/icon32.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav class="wrap">
+    <a class="brand" href="index.html">
+      <img src="./assets/icons/icon32.png" alt="" />
+      MRU Tab Switcher
+    </a>
+    <div class="links">
+      <a href="index.html">Home</a>
+    </div>
+  </nav>
+
+  <main class="wrap">
+    <article class="doc">
+      <h1>Privacy Policy</h1>
+      <p><em>Last updated: August 7, 2026</em></p>
+
+      <p>
+        MRU Tab Switcher ("the extension") is designed to do one thing: let
+        you switch between your recently-used browser tabs. This policy
+        explains what data the extension touches and — just as importantly —
+        what it never does with it.
+      </p>
+
+      <h2>Summary</h2>
+      <ul>
+        <li>No data ever leaves your browser.</li>
+        <li>No servers, analytics, trackers, or third parties are involved.</li>
+        <li>No account, sign-in, or personal information is required or collected.</li>
+        <li>Nothing is sold, shared, or used for advertising.</li>
+      </ul>
+
+      <h2>What the extension accesses</h2>
+      <p>To build the list of recent tabs and let you search open tabs, the extension reads, locally on your device only:</p>
+      <ul>
+        <li>Tab titles, URLs, and favicons of your currently open tabs.</li>
+        <li>Which tab is active, and the order tabs were used/opened in, per browser window.</li>
+      </ul>
+      <p>
+        This information is used solely to render the switcher overlay (the
+        list of tabs and search box shown on <kbd>Ctrl</kbd>+<kbd>`</kbd>)
+        and to activate the tab you choose.
+      </p>
+
+      <h2>What the extension stores</h2>
+      <p>
+        The recent-tab order is kept in memory and mirrored to
+        <code>chrome.storage.session</code>, a temporary, local storage area
+        provided by Chrome that is automatically cleared when your browser
+        session ends. This is only so the tab order survives the extension's
+        background service worker being briefly unloaded and reloaded by
+        Chrome — it is never synced, uploaded, or made available outside your
+        own device.
+      </p>
+
+      <h2>What the extension does NOT do</h2>
+      <ul>
+        <li>It does not read or store the content of web pages you visit.</li>
+        <li>It does not transmit any data over the network — the extension makes no network requests at all.</li>
+        <li>It does not use cookies, analytics, or third-party SDKs.</li>
+        <li>It does not track your browsing history beyond the in-memory recent-tab order described above.</li>
+      </ul>
+
+      <h2>Permissions</h2>
+      <p>
+        The extension requests the minimum permissions needed for this
+        functionality — see
+        <a href="https://github.com/arashThr/mru-tabs#permissions" target="_blank" rel="noopener">the project's permissions justification</a>
+        for a detailed explanation of each one.
+      </p>
+
+      <h2>Changes to this policy</h2>
+      <p>
+        If this policy changes, the updated version will be posted on this
+        page with a revised "Last updated" date.
+      </p>
+
+      <h2>Contact</h2>
+      <p>
+        Questions about this policy? Open an issue on the
+        <a href="https://github.com/arashThr/mru-tabs" target="_blank" rel="noopener">GitHub repository</a>.
+      </p>
+    </article>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>© 2026 MRU Tab Switcher</span>
+      <span><a href="index.html">Home</a></span>
+    </div>
+  </footer>
+</body>
+</html>

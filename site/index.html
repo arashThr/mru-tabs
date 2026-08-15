@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MRU Tab Switcher — Fast, Cyclic Tab Switching for Chrome</title>
+  <meta name="description" content="Cycle straight back to the tab you were just on, or search for any open tab — all from the keyboard, without touching your mouse." />
+  <link rel="icon" type="image/png" href="./assets/icons/icon32.png" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" type="image/x-icon" href="./assets/icons/icon128.png">
+</head>
+<body>
+  <nav class="wrap">
+    <a class="brand" href="index.html">
+      <img src="./assets/icons/icon32.png" alt="" />
+      MRU Tab Switcher
+    </a>
+    <div class="links">
+      <a href="privacy.html">Privacy</a>
+      <a href="https://github.com/arashThr/mru-tabs" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero wrap">
+      <img class="logo" src="./assets/logo.svg" alt="MRU Tab Switcher logo" />
+      <h1>Get back to where you were, instantly</h1>
+      <p class="tagline">Cyclic tab switching with a live preview, plus fast search when you need it.</p>
+      <p class="sub">
+        Hold the shortcut to preview your most recently used tabs and land
+        exactly where you want, or start typing to find any open tab in seconds.
+      </p>
+      <p class="keys">
+        <kbd>Ctrl</kbd> <span class="plus">+</span> <kbd>`</kbd>
+      </p>
+      <div class="cta">
+        <a class="btn btn-primary" href="https://chromewebstore.google.com/detail/mru-tab-switcher/gonanegpemmejepobcphfinobekhgpan">Add to Chrome</a>
+        <a class="btn btn-ghost" href="#how">See how it works</a>
+      </div>
+    </section>
+
+    <section class="wrap features">
+      <div class="feature">
+        <div class="icon">⚡️</div>
+        <h3>Quick toggle</h3>
+        <p>Tap Ctrl+` to instantly jump to your previous tab. Tap again to toggle right back.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">👀</div>
+        <h3>Hold to preview</h3>
+        <p>Keep Ctrl held and tap ` (or use ↑/↓) to cycle a compact overlay of recent tabs before switching.</p>
+      </div>
+      <div class="feature">
+        <div class="icon">🔎</div>
+        <h3>Type-ahead search</h3>
+        <p>Can't find it in the recent list? Search every open tab by title without leaving the keyboard.</p>
+      </div>
+    </section>
+
+    <section class="wrap block">
+      <h2>Screenshots</h2>
+      <div class="screens">
+        <div class="browser-frame">
+          <div class="titlebar">
+            <span class="dot red"></span>
+            <span class="dot yellow"></span>
+            <span class="dot green"></span>
+            <span class="bar"></span>
+          </div>
+          <img style="width: 100%;" src="./assets/screenshots/cycle-overlay.png" alt="Cycle overlay showing recent tabs" />
+          <!-- <div class="screenshot">Screenshot: cycling overlay</div> -->
+        </div>
+        <div class="browser-frame">
+          <div class="titlebar">
+            <span class="dot red"></span>
+            <span class="dot yellow"></span>
+            <span class="dot green"></span>
+            <span class="bar"></span>
+          </div>
+          <img style="width: 100%;" src="./assets/screenshots/search.png" alt="Type-ahead tab search" />
+          <!-- <div class="screenshot">Screenshot: type-ahead search</div> -->
+        </div>
+      </div>
+    </section>
+
+    <section class="wrap block" id="how">
+      <h2>How it works</h2>
+      <ol class="steps">
+        <li><span class="num">1</span><span><strong>Quick tap</strong> Ctrl+` → switch straight to the previously-used tab.</span></li>
+        <li><span class="num">2</span><span><strong>Hold</strong> Ctrl and tap ` repeatedly (or ↑/↓) → cycle a preview list of recent tabs.</span></li>
+        <li><span class="num">3</span><span><strong>Release Ctrl</strong> on a highlighted tab → switch to it.</span></li>
+        <li><span class="num">4</span><span><strong>Select Search</strong> → type part of a title to find any open tab.</span></li>
+      </ol>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>© 2026 MRU Tab Switcher</span>
+      <span>
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="https://github.com/arashThr/mru-tabs" target="_blank" rel="noopener">Source on GitHub</a>
+      </span>
+    </div>
+  </footer>
+</body>
+</html>
+
