@@ -6,6 +6,8 @@
   let session = null; // { mode: 'cycle'|'search', ... }
   let overlayHost = null;
   let opening = false; // true while the first get-mru request is in flight
+  let pendingSteps = 0; // extra presses made while that request was in flight
+  let ctrlHeld = false;
 
   const BASE_STYLE = `
     .panel { display:flex; flex-direction:column; gap:2px; min-width:260px;
@@ -29,9 +31,19 @@
   const SEARCH_ITEM = {
     id: null,
     title: "\uD83D\uDD0D Search tabs\u2026",
-    favIconUrl: "",
+    url: "",
     isSearch: true,
   };
+
+  // Favicons come from Chrome's favicon cache via the extension rather than
+  // the tab's original favicon URL. Loading e.g. a localhost favicon from
+  // inside a public page would trigger Chrome's Local Network Access prompt.
+  function faviconSrc(pageUrl) {
+    const url = new URL(chrome.runtime.getURL("/_favicon/"));
+    url.searchParams.set("pageUrl", pageUrl);
+    url.searchParams.set("size", "32");
+    return url.toString();
+  }
 
   function renderItems(container, items, activeIndex) {
     container.innerHTML = "";
@@ -40,7 +52,7 @@
       row.className = "item" + (i === activeIndex ? " active" : "");
       if (!item.isSearch) {
         const img = document.createElement("img");
-        img.src = item.favIconUrl || "";
+        if (item.url) img.src = faviconSrc(item.url);
         row.appendChild(img);
       }
       const span = document.createElement("span");
@@ -224,6 +236,7 @@
   window.addEventListener(
     "keydown",
     (e) => {
+      ctrlHeld = e.ctrlKey;
       if (
         session &&
         session.mode === "cycle" &&
@@ -240,10 +253,18 @@
       e.stopPropagation();
 
       if (!session) {
-        if (opening) return; // first press's request is still in flight
+        if (opening) {
+          // First press's request is still in flight; apply this press
+          // once the list arrives.
+          pendingSteps += e.shiftKey ? -1 : 1;
+          return;
+        }
         opening = true;
+        pendingSteps = 0;
         chrome.runtime.sendMessage({ type: "get-mru" }, (resp) => {
           opening = false;
+          const steps = pendingSteps;
+          pendingSteps = 0;
           if (chrome.runtime.lastError) return;
           if (!resp || !resp.items || resp.items.length < 2) return;
           // Current tab sits at the top of the list as a visual anchor;
@@ -256,7 +277,13 @@
             items: [{ ...current, isCurrent: true }, ...others, SEARCH_ITEM],
             index: 1,
           };
+          const n = session.items.length;
+          session.index = (((1 + steps) % n) + n) % n;
           buildCycleOverlay();
+          // The background worker may have been asleep, so Ctrl can already
+          // be released by the time the list arrives. Its keyup was missed,
+          // so commit now instead of leaving the overlay stuck open.
+          if (!ctrlHeld) endCycle(true);
         });
       } else {
         step(e.shiftKey);
@@ -268,6 +295,7 @@
   window.addEventListener(
     "keyup",
     (e) => {
+      if (e.key === "Control") ctrlHeld = false;
       if (e.key === "Control" && session && session.mode === "cycle") {
         endCycle(true);
       }
@@ -276,6 +304,7 @@
   );
 
   window.addEventListener("blur", () => {
+    ctrlHeld = false;
     if (!session) return;
     if (session.mode === "cycle") endCycle(true);
     else endSearch(false);

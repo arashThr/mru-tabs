@@ -121,7 +121,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             items.push({
               id,
               title: t.title || t.url || "Tab",
-              favIconUrl: t.favIconUrl || "",
+              url: t.url || "",
             });
           } catch {
             const idx = list.indexOf(id);
@@ -155,7 +155,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
             const t = await chrome.tabs.get(id);
             const title = t.title || t.url || "Tab";
             if (!title.toLowerCase().includes(query)) continue;
-            items.push({ id, title, favIconUrl: t.favIconUrl || "" });
+            items.push({ id, title, url: t.url || "" });
             if (items.length >= 20) break;
           } catch {
             const idx = list.indexOf(id);

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "MRU Tab Switcher",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -9,7 +9,7 @@
     "128": "icons/icon128.png"
   },
   "description": "Firefox-style Ctrl+Tab: hold Ctrl and tap ` to preview tabs in most-recently-used order, release Ctrl to switch.",
-  "permissions": ["tabs", "storage"],
+  "permissions": ["tabs", "storage", "favicon"],
   "background": {
     "service_worker": "background.js"
   },
@@ -18,6 +18,12 @@
       "matches": ["<all_urls>"],
       "js": ["content.js"],
       "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["_favicon/*"],
+      "matches": ["<all_urls>"]
     }
   ]
 }

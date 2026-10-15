@@ -31,6 +31,28 @@ your current tab without becoming active.
 4. Reload any tabs that were already open (content scripts only attach to new
    page loads).
 
+## Permissions
+
+- **`tabs`** — read the titles and URLs of open tabs to build the switcher list
+  and search, and activate the tab you pick.
+- **`storage`** — mirror the recent-tab order to `chrome.storage.session` so it
+  survives Chrome unloading the background service worker. Cleared when the
+  browser session ends.
+- **`favicon`** — show each tab's icon from Chrome's local favicon cache
+  instead of fetching it from the site, so the overlay makes no network
+  requests.
+- **Content script on all sites** — needed to detect the Ctrl+`` ` `` shortcut
+  and draw the overlay on whatever page you're on. It doesn't read page
+  content.
+
+## Package for the Chrome Web Store
+
+```sh
+mkdir -p dist && (cd extension && zip -r ../dist/mru-tabs-$(jq -r .version manifest.json).zip .)
+```
+
+Upload the zip from `dist/` in the developer dashboard.
+
 ## Known limitations (kept simple on purpose)
 
 - Doesn't work on `chrome://` pages, the Chrome Web Store, or the PDF viewer —
